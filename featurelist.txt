@@ -1,0 +1,4 @@
+ignore command case
+automatic help message generation
+aliases via accepting an initializer_list<std::string | char>
+command_signature
