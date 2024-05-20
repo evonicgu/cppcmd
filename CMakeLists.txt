@@ -8,10 +8,6 @@ option(CPPCMD_BUILD_TESTS "Build cppcmd tests" OFF)
 option(CPPCMD_TESTS_GTEST_USE_SHARED_CRT "Use shared CRT for testing cppcmd with GoogleTest" ON)
 option(CPPCMD_MSVC_USE_DYNAMIC_RUNTIME "Use dynamic runtime library with MSVC" ON)
 
-add_executable(t test.cpp)
-
-target_include_directories(t PRIVATE ${CMAKE_SOURCE_DIR}/deps/reflectcpp/include)
-
 add_library(cppcmd_lib INTERFACE)
 target_include_directories(cppcmd_lib INTERFACE include)
 target_include_directories(cppcmd_lib INTERFACE deps/reflectcpp/include)
