@@ -1,6 +1,14 @@
 #ifndef CPPCMD_INCLUDE_PROXY_H
 #define CPPCMD_INCLUDE_PROXY_H
 
+#include "uuid.h"
+
+namespace cppcmd {
+
+    using namespace uuids;
+
+}
+
 #include "arguments.h"
 #include "config.h"
 #include "default_mapper.h"

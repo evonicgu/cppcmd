@@ -21,6 +21,7 @@ namespace cppcmd::exception {
 
         define_exception(specification_exception, exception);
 
+        define_exception(duplicate_command_name, specification_exception);
         define_exception(long_option_too_short, specification_exception);
         define_exception(long_option_invalid_name, specification_exception);
         define_exception(command_invalid_name, specification_exception);

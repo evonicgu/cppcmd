@@ -5,6 +5,8 @@
 #include <string>
 #include <type_traits>
 
+#include "uuid.h"
+
 #include "cppcmd/exception.h"
 #include "cppcmd/config.h"
 
@@ -41,6 +43,21 @@ namespace cppcmd::parser {
                 throw exception::parsing::unable_to_parse_value(
                     "Invalid characters encountered, could not parse numeric value");
             }
+        }
+
+        void parse(std::string_view text, uuids::uuid& value) const {
+            auto opt_uuid = uuids::uuid::from_string(text);
+
+            if (!opt_uuid.has_value()) {
+                throw exception::parsing::unable_to_parse_value("Unable to parse UUID");
+            }
+
+            value = opt_uuid.value();
+        }
+
+        template<typename ... TArgs>
+        void parse(std::string_view text, std::tuple<TArgs ...>& value) const {
+            parse_tuple_elements(text, value, std::make_index_sequence<sizeof...(TArgs)>());
         }
 
         void parse(std::string_view text, std::string& value) const {
@@ -131,6 +148,33 @@ namespace cppcmd::parser {
             }
 
             throw exception::parsing::unable_to_parse_value("Could not parse boolean value");
+        }
+
+    private:
+        template<typename ... TArgs, std::size_t ... Is>
+        void parse_tuple_elements(std::string_view text, std::tuple<TArgs ...>& value,
+            std::integer_sequence<std::size_t, Is ...> indices) const {
+            std::size_t curr_start = 0;
+
+            (parse_one_element(text, curr_start, std::get<Is>(value), sizeof...(TArgs), Is), ...);
+        }
+
+        template<typename T>
+        void parse_one_element(std::string_view text, std::size_t& start, T& value,
+            std::size_t total, std::size_t current) const {
+            if (start == std::string_view::npos) {
+                throw exception::parsing::unable_to_parse_value(
+                    "zalupa"
+                    );
+
+                // std::string{"Expected option to have "} + std::to_string{total} + " values, only " + current + " were provided"
+            }
+
+            std::size_t end = text.find(config.value_separator, start);
+
+            parse(text.substr(start, end == std::string_view::npos ? end : end - start), value);
+
+            start = end == std::string_view::npos ? end : end + 1;
         }
     };
 

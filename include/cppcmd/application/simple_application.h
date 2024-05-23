@@ -37,10 +37,10 @@ namespace cppcmd {
 
     }
 
-    template<typename TOptions, typename TArguments, typename TMapper>
-    application::simple_application<TOptions, TArguments, TMapper> make_simple_application(
-        typename TOptions::parser_t parser,
-        TMapper mapper) {
+    template<typename TOptions, typename TArguments, typename TMapper = default_mapper<parser::default_value_parser>>
+    application::simple_application<TOptions, TArguments, TMapper> simple_app(
+        typename TOptions::parser_t parser = typename TOptions::parser_t{},
+        TMapper mapper = TMapper{}) {
         return application::simple_application<TOptions, TArguments, TMapper>(std::move(parser), std::move(mapper));
     }
 

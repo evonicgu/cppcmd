@@ -34,7 +34,7 @@ namespace cppcmd {
     template<typename TValueParser>
     class default_mapper {
         default_mapper_configuration config{};
-        TValueParser value_parser;
+        TValueParser value_parser{};
 
     public:
         explicit default_mapper(default_mapper_configuration config, TValueParser value_parser)
@@ -43,6 +43,8 @@ namespace cppcmd {
 
         explicit default_mapper(TValueParser value_parser)
             : value_parser(std::move(value_parser)) {}
+
+        explicit default_mapper() = default;
 
         template<typename TOptions, typename TArguments>
         unmatched_data map(TOptions& options, TArguments& args, parser::parsing_result& parsed) const {

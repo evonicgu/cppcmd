@@ -4,7 +4,6 @@
 #include <memory>
 #include <string>
 
-#include "cppcmd/parser/option/gnu_style_parser.h"
 #include "cppcmd/default_mapper.h"
 #include "cppcmd/type_validator.h"
 #include "cppcmd/parser/value/default_value_parser.h"
@@ -15,7 +14,7 @@ namespace cppcmd {
     namespace application {
 
         template<typename TOptions, typename TMapper = default_mapper<parser::default_value_parser>>
-        class multicommand_application : private command::multi_command_dispatcher<TOptions> {
+        class multicommand_application : private command::multi_command_dispatcher<TOptions, TMapper> {
             using TParser = typename TOptions::parser_t;
 
             static_assert(validate_options<TOptions>(), "Options type is invalid");
@@ -23,8 +22,7 @@ namespace cppcmd {
             TParser parser;
             TMapper mapper;
 
-            typename multicommand_application::template command_bag_t<TMapper, command::command_frame<TOptions>>
-                commands;
+            typename multicommand_application::command_bag_t commands;
 
         public:
             explicit multicommand_application(TParser parser, TMapper mapper)
@@ -37,9 +35,12 @@ namespace cppcmd {
                     throw exception::specification::command_invalid_name("Invalid command name: '" + name + "'");
                 }
 
+                if (commands.contains(name)) {
+                    throw exception::specification::duplicate_command_name("Duplicate command name: '" + name + "'");
+                }
+
                 commands.emplace(std::move(name), std::make_unique<
-                    typename multicommand_application::template
-                        any_command_erased<T, TMapper, command::command_frame<TOptions>>>(std::move(cmd)));
+                    typename multicommand_application::template any_command_erased<T>>(std::move(cmd)));
             }
 
             void parse(int argc, const char* const* argv) {
@@ -49,9 +50,10 @@ namespace cppcmd {
 
     }
 
-    template<typename TOptions, typename TMapper>
-    application::multicommand_application<TOptions, TMapper> make_multicommand_application(typename TOptions::parser_t parser,
-    TMapper mapper) {
+    template<typename TOptions, typename TMapper = default_mapper<parser::default_value_parser>>
+    application::multicommand_application<TOptions, TMapper> multi_app(
+        typename TOptions::parser_t parser = typename TOptions::parser_t{},
+        TMapper mapper = TMapper{}) {
         return application::multicommand_application<TOptions, TMapper>(std::move(parser), std::move(mapper));
     }
 

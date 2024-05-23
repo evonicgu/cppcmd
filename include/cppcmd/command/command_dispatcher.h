@@ -87,46 +87,51 @@ namespace cppcmd::command {
         }
     };
 
-    template<typename TOptions>
+    template<typename TOptions, typename TMapper, typename ... TPrevious>
     class multi_command_dispatcher : public command_dispatcher<TOptions> {
     protected:
         typename multi_command_dispatcher::TParser p;
 
-        template<typename TMapper, typename ... TPrevious>
         class any_command {
-            static_assert((std::is_rvalue_reference_v<TPrevious&&> && ...), "All previous types must be rvalue-references");
-
         public:
-            virtual void invoke(const typename multi_command_dispatcher::TParser&,
-                const TMapper&, int, const char* const*, TPrevious&& ...) = 0;
+            virtual void invoke(
+                const typename multi_command_dispatcher::TParser&,
+                const TMapper&,
+                int,
+                const char* const*,
+                TPrevious&& ..., command_frame<TOptions>&&) = 0;
 
             virtual ~any_command() = default;
         };
 
-        template<typename TCommand, typename TMapper, typename ... TPrevious>
-        class any_command_erased : public any_command<TMapper, TPrevious ...> {
+        template<typename TCommand>
+        class any_command_erased : public any_command {
             TCommand cmd;
 
         public:
             explicit any_command_erased(TCommand&& cmd)
                 : cmd(std::move(cmd)) {}
 
-            void invoke(const typename multi_command_dispatcher::TParser& parser,
-                const TMapper& mapper, int argc, const char* const* argv,
-                TPrevious&& ... previous) override {
-                cmd.invoke(parser, mapper, argc, argv, std::move(previous) ...);
+            void invoke(
+                const typename multi_command_dispatcher::TParser& parser,
+                const TMapper& mapper,
+                int argc,
+                const char* const* argv,
+                TPrevious&& ... previous,
+                command_frame<TOptions>&& curr) override {
+                cmd.invoke(parser, mapper, argc, argv, std::move(previous) ..., std::move(curr));
             }
         };
 
-        template<typename TMapper, typename ... TPrevious>
-        using command_bag_t = std::unordered_map<std::string, std::unique_ptr<any_command<TMapper, TPrevious ...>>>;
+        using command_bag_t = std::unordered_map<std::string, std::unique_ptr<any_command>>;
 
-        template<typename TMapper, typename ... TPrevious>
-        void parse_cmd(const command_bag_t<TMapper, TPrevious ..., command_frame<TOptions>>& commands,
+        void parse_cmd(
+            const command_bag_t& commands,
             const typename multi_command_dispatcher::TParser& parser,
-            const TMapper& mapper, int argc, const char* const* argv, TPrevious&& ... previous) {
-            static_assert((std::is_rvalue_reference_v<TPrevious&&> && ...), "All previous types must be rvalue-references");
-
+            const TMapper& mapper,
+            int argc,
+            const char* const* argv,
+            TPrevious&& ... previous) {
             TOptions options;
             detail::no_argument_helper args;
 
@@ -161,6 +166,7 @@ namespace cppcmd::command {
                 });
         }
     };
+
 
 }
 

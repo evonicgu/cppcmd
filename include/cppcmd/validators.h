@@ -13,8 +13,22 @@ namespace cppcmd {
     using err_t = std::optional<std::string>;
 
     namespace config {
+
+        template<typename ... TValidators>
+        struct validators {
+            std::tuple<TValidators ...> given_validators;
+
+            template<typename ... TDeduced>
+            explicit validators(TDeduced&& ... given_validators)
+                : given_validators(std::forward<TDeduced>(given_validators) ...) {}
+        };
+
+
+        template<typename ... TValidators>
+        validators(TValidators&& ...) -> validators<std::remove_cvref_t<TValidators> ...>;
+
         template<typename T>
-        class validators {
+        class validator_storage {
             class any_validator {
             public:
                 virtual err_t validate(const T&) = 0;
@@ -39,10 +53,20 @@ namespace cppcmd {
 
         public:
             template<typename ... TValidators>
-            explicit validators(TValidators && ... given) {
+            explicit validator_storage(TValidators&& ... given) {
                 stored_validators.reserve(sizeof...(given));
 
                 (stored_validators.push_back(std::make_unique<validator_erased<TValidators>>(std::move(given))), ...);
+            }
+
+            template<typename ... TValidators>
+            validator_storage(validators<TValidators ...> given) {
+                stored_validators.reserve(sizeof...(TValidators));
+
+                static_assert((std::is_invocable_v<TValidators, T> && ...),
+                    "Each of the validators must be invocable with T");
+
+                init(std::move(given), std::make_index_sequence<sizeof...(TValidators)>());
             }
 
             err_t validate(const T& value) {
@@ -56,7 +80,15 @@ namespace cppcmd {
 
                 return std::nullopt;
             }
+
+        private:
+            template<typename ... TValidators, std::size_t ... Is>
+            void init(validators<TValidators ...>&& given, std::index_sequence<Is ...>) {
+                (stored_validators.push_back(std::make_unique<validator_erased<TValidators>>(std::move(
+                    std::get<Is>(given.given_validators)))), ...);
+            }
         };
+
     }
 
     namespace validators {
@@ -134,7 +166,14 @@ namespace cppcmd {
             }
         };
 
-        struct readable {
+        struct permissions {
+        private:
+            std::filesystem::perms required_permissions;
+
+        public:
+            explicit permissions(std::filesystem::perms required_permissions)
+                : required_permissions(required_permissions) {}
+
             template<typename T>
             err_t operator()(const T& value) {
                 const std::filesystem::path p(value);
@@ -142,18 +181,48 @@ namespace cppcmd {
                 std::error_code ec;
                 auto status = std::filesystem::status(p, ec);
 
-                if (ec || ) {
-                    return "File or directory '" + p.string() + "' is not readable";
+                if (ec) {
+                    return "Failed to get permissions for file or directory: '" + p.string() + '\'';
                 }
+
+                err_t error;
+
+                check(error, status,
+                    std::filesystem::perms::group_read |
+                    std::filesystem::perms::others_read |
+                    std::filesystem::perms::owner_read,
+                    "is not readable", p);
+
+                check(error, status,
+                    std::filesystem::perms::group_write |
+                    std::filesystem::perms::others_write |
+                    std::filesystem::perms::owner_write,
+                    "is not writable", p);
+
+                check(error, status,
+                    std::filesystem::perms::group_exec |
+                    std::filesystem::perms::others_exec |
+                    std::filesystem::perms::owner_exec,
+                    "is not executable", p);
+
+                check(error, status, required_permissions, "does not have required permissions", p);
+
+                return error;
             }
 
         private:
-            bool is_readable(const std::filesystem::file_status& status) {
-                auto perms = status.permissions();
+            void check(err_t& error, const std::filesystem::file_status& status,
+                std::filesystem::perms checked_permissions,
+                const char* message, const std::filesystem::path& p) {
+                if (error.has_value()) {
+                    return;
+                }
 
-                return (perms & std::filesystem::perms::group_read) != std::filesystem::perms::none &&
-                    (perms & std::filesystem::perms::others_read) != std::filesystem::perms::none &&
-                    (perms & std::filesystem::perms::owner_read) != std::filesystem::perms::none;
+                std::filesystem::perms needed_permissions = checked_permissions & required_permissions;
+
+                if ((status.permissions() & needed_permissions) != needed_permissions) {
+                    error = "File or directory '" + p.string() + "\' " + message;
+                }
             }
         };
 

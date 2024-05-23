@@ -20,7 +20,7 @@ namespace cppcmd {
                     config::implicit_value<T>,
                     config::description,
                     config::short_name,
-                    config::validators<T>,
+                    config::validator_storage<T>,
                     config::long_name>;
 
         public:
@@ -31,7 +31,7 @@ namespace cppcmd {
             std::optional<config::description> description;
             std::optional<config::long_name> long_name;
             std::optional<config::short_name> short_name;
-            std::optional<config::validators<T>> validators;
+            std::optional<config::validator_storage<T>> validators;
 
             bool requires_arg = !std::is_same_v<bool, T>;
 
@@ -57,7 +57,7 @@ namespace cppcmd {
                       description(config::from_args_opt<config::description>(std::forward<Args>(args) ...)),
                       long_name(config::from_args_opt<config::long_name>(std::forward<Args>(args) ...)),
                       short_name(config::from_args_opt<config::short_name>(std::forward<Args>(args) ...)),
-                      validators(config::from_args_opt<config::validators<T>>(std::forward<Args>(args) ...)) {}
+                      validators(config::from_args_opt<config::validator_storage<T>>(std::forward<Args>(args) ...)) {}
 
             template<typename ... Args, typename M = T,
                     std::enable_if_t<(config::detail::is_in_tuple_v<config_t, Args> && ...), int> = 0,
@@ -69,7 +69,7 @@ namespace cppcmd {
                       description(config::from_args_opt<config::description>(std::forward<Args>(args) ...)),
                       long_name(config::from_args_opt<config::long_name>(std::forward<Args>(args) ...)),
                       short_name(config::from_args_opt<config::short_name>(std::forward<Args>(args) ...)),
-                      validators(config::from_args_opt<config::validators<T>>(std::forward<Args>(args) ...)) {}
+                      validators(config::from_args_opt<config::validator_storage<T>>(std::forward<Args>(args) ...)) {}
 
             void set_value(T new_value) {
                 val = std::move(new_value);
@@ -96,7 +96,7 @@ namespace cppcmd {
                     config::implicit_single_value<config::detail::iterated_type<T>>,
                     config::description,
                     config::short_name,
-                    config::validators<T>,
+                    config::validator_storage<T>,
                     config::long_name>;
 
         public:
@@ -107,7 +107,7 @@ namespace cppcmd {
             std::optional<config::description> description;
             std::optional<config::long_name> long_name;
             std::optional<config::short_name> short_name;
-            std::optional<config::validators<T>> validators;
+            std::optional<config::validator_storage<T>> validators;
 
             bool requires_arg = true;
 
@@ -127,7 +127,7 @@ namespace cppcmd {
                       description(config::from_args_opt<config::description>(std::forward<Args>(args) ...)),
                       long_name(config::from_args_opt<config::long_name>(std::forward<Args>(args) ...)),
                       short_name(config::from_args_opt<config::short_name>(std::forward<Args>(args) ...)),
-                      validators(config::from_args_opt<config::validators<T>>(std::forward<Args>(args) ...)) {}
+                      validators(config::from_args_opt<config::validator_storage<T>>(std::forward<Args>(args) ...)) {}
 
             template<typename ... Args, typename M = T,
                     std::enable_if_t<(config::detail::is_in_tuple_v<settings_t, Args> && ...), int> = 0,
@@ -139,7 +139,7 @@ namespace cppcmd {
                       description(config::from_args_opt<config::description>(std::forward<Args>(args) ...)),
                       long_name(config::from_args_opt<config::long_name>(std::forward<Args>(args) ...)),
                       short_name(config::from_args_opt<config::short_name>(std::forward<Args>(args) ...)),
-                      validators(config::from_args_opt<config::validators<T>>(std::forward<Args>(args) ...)) {}
+                      validators(config::from_args_opt<config::validator_storage<T>>(std::forward<Args>(args) ...)) {}
 
             void set_value(T new_value) {
                 val = std::move(new_value);
@@ -292,27 +292,27 @@ namespace cppcmd {
         }
 
         template<typename TField>
-        const auto& get_default_value(const TField& field) {
+        auto get_default_value(const TField& field) {
             static_assert(is_any_option_v<config::detail::field_t<TField>>,
                           "Only cppcmd::value or cppcmd::multivalue type can provide default value");
 
-            return field.value()->value_no_opt->value;
+            return field.value()->value_no_opt->value();
         }
 
         template<typename TField>
-        const auto& get_implicit_value(const TField& field) {
+        auto get_implicit_value(const TField& field) {
             static_assert(is_single_option_v<config::detail::field_t<TField>>,
                           "Only cppcmd::value type can provide implicit value");
 
-            return field.value()->value_no_arg->value;
+            return field.value()->value_no_arg->value();
         }
 
         template<typename TField>
-        const auto& get_implicit_single_value(const TField& field) {
+        auto get_implicit_single_value(const TField& field) {
             static_assert(is_multioption_v<config::detail::field_t<TField>>,
                           "Only cppcmd::multivalue type can provide implicit value for single argument");
 
-            return field.value()->value_no_single_arg->value;
+            return field.value()->value_no_single_arg->value();
         }
 
         template<typename TField>

@@ -4,6 +4,9 @@
 #include <optional>
 #include <type_traits>
 #include <string>
+#include <variant>
+
+#include "helper.h"
 
 namespace cppcmd::config {
 
@@ -60,42 +63,95 @@ namespace cppcmd::config {
         template<typename TField>
         using field_t = std::decay_t<std::remove_pointer_t<typename TField::Type>>;
 
+        template<typename T>
+        struct constant_factory {
+        private:
+            T stored;
+
+        public:
+            explicit constant_factory(T stored)
+                : stored(std::move(stored)) {}
+
+            T value() const {
+                return stored;
+            }
+        };
+
     }
 
     template<typename T>
     struct default_value {
-        T value;
+    private:
+        std::variant<detail::constant_factory<T>, factory<T>> producer;
 
+    public:
         explicit default_value(T value)
-            : value(std::move(value)) {}
+            : producer(detail::constant_factory{std::move(value)}) {}
+
+        explicit default_value(factory<T> f)
+            : producer(std::move(f)) {}
 
         template<typename Tp, std::enable_if_t<std::is_convertible_v<Tp, T>, int> = 0>
         default_value(default_value<Tp> other)
-            : value(std::move(other.value)) {}
+            : producer(factory{[prev = std::move(other)]() mutable {
+                return T(prev.value());
+              }}) {}
+
+        T value() {
+            return std::visit([](auto& factory) {
+                return factory.value();
+            }, producer);
+        }
     };
 
     template<typename T>
     struct implicit_value {
-        T value;
+    private:
+        std::variant<detail::constant_factory<T>, factory<T>> producer;
 
+    public:
         explicit implicit_value(T value)
-            : value(std::move(value)) {}
+            : producer(detail::constant_factory{std::move(value)}) {}
+
+        explicit implicit_value(factory<T> f)
+            : producer(std::move(f)) {}
 
         template<typename Tp, std::enable_if_t<std::is_convertible_v<Tp, T>, int> = 0>
         implicit_value(implicit_value<Tp> other)
-            : value(std::move(other.value)) {}
+            : producer(factory{[prev = std::move(other)]() mutable {
+                return T(prev.value());
+              }}) {}
+
+        T value() {
+            return std::visit([](auto& factory) {
+                return factory.value();
+            }, producer);
+        }
     };
 
     template<typename T>
     struct implicit_single_value {
-        T value;
+    private:
+        std::variant<detail::constant_factory<T>, factory<T>> producer;
 
+    public:
         explicit implicit_single_value(T value)
-            : value(std::move(value)) {}
+            : producer(detail::constant_factory{std::move(value)}) {}
+
+        explicit implicit_single_value(factory<T> f)
+            : producer(std::move(f)) {}
 
         template<typename Tp, std::enable_if_t<std::is_convertible_v<Tp, T>, int> = 0>
         implicit_single_value(implicit_single_value<Tp> other)
-            : value(std::move(other.value)) {}
+            : producer(factory{[prev = std::move(other)]() mutable {
+                return T(prev.value());
+              }}) {}
+
+        T value() {
+            return std::visit([](auto& factory) {
+                return factory.value();
+            }, producer);
+        }
     };
 
     struct description {

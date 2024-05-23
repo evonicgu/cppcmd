@@ -8,9 +8,15 @@ option(CPPCMD_BUILD_TESTS "Build cppcmd tests" OFF)
 option(CPPCMD_TESTS_GTEST_USE_SHARED_CRT "Use shared CRT for testing cppcmd with GoogleTest" ON)
 option(CPPCMD_MSVC_USE_DYNAMIC_RUNTIME "Use dynamic runtime library with MSVC" ON)
 
+include(cmake/get_cpm.cmake)
+include(cmake/install.cmake)
+
 add_library(cppcmd_lib INTERFACE)
 target_include_directories(cppcmd_lib INTERFACE include)
 target_include_directories(cppcmd_lib INTERFACE deps/reflectcpp/include)
+
+set(UUID_USING_CXX20_SPAN ON CACHE BOOL "" FORCE)
+target_link_libraries(cppcmd_lib INTERFACE stduuid)
 
 if (CPPCMD_BUILD_TESTS)
     if(CPPCMD_TESTS_GTEST_USE_SHARED_CRT)
@@ -19,7 +25,6 @@ if (CPPCMD_BUILD_TESTS)
         set(gtest_force_shared_crt OFF CACHE BOOL "" FORCE)
     endif()
 
-    include(cmake/get_cpm.cmake)
     include(cmake/install_gtest.cmake)
 
     include(CTest)

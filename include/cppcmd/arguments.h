@@ -15,14 +15,14 @@ namespace cppcmd {
         template<typename T, typename TParser>
         class argument {
             using config_t = config::detail::parameter_pack<typename TParser::argument_config,
-                config::description, config::long_name, config::validators<T>>;
+                config::description, config::long_name, config::validator_storage<T>>;
 
         public:
             std::optional<T> val;
             std::optional<typename TParser::argument_config> parser_config;
             std::optional<config::description> description;
             std::optional<config::long_name> name;
-            std::optional<config::validators<T>> validators;
+            std::optional<config::validator_storage<T>> validators;
 
             using type = T;
 
@@ -36,7 +36,7 @@ namespace cppcmd {
                     : parser_config(config::from_args_opt<typename TParser::argument_config>(std::forward<Args>(args) ...)),
                       description(config::from_args_opt<config::description>(std::forward<Args>(args) ...)),
                       name(config::from_args_opt<config::long_name>(std::forward<Args>(args) ...)),
-                      validators(config::from_args_opt<config::validators<T>>(std::forward<Args>(args) ...)) {}
+                      validators(config::from_args_opt<config::validator_storage<T>>(std::forward<Args>(args) ...)) {}
 
             void set_value(T new_value) {
                 val = std::move(new_value);
@@ -66,7 +66,7 @@ namespace cppcmd {
         template<typename T, typename TParser>
         class optional_argument {
             using config_t = config::detail::parameter_pack<typename TParser::argument_config,
-                config::description, config::long_name, config::default_value<T>, config::validators<T>>;
+                config::description, config::long_name, config::default_value<T>, config::validator_storage<T>>;
 
         public:
             std::optional<T> val;
@@ -74,7 +74,7 @@ namespace cppcmd {
             std::optional<typename TParser::argument_config> parser_config;
             std::optional<config::description> description;
             std::optional<config::long_name> name;
-            std::optional<config::validators<T>> validators;
+            std::optional<config::validator_storage<T>> validators;
 
             using type = T;
 
@@ -90,7 +90,7 @@ namespace cppcmd {
                       parser_config(config::from_args_opt<typename TParser::argument_config>(std::forward<Args>(args) ...)),
                       description(config::from_args_opt<config::description>(std::forward<Args>(args) ...)),
                       name(config::from_args_opt<config::long_name>(std::forward<Args>(args) ...)),
-                      validators(config::from_args_opt<config::validators<T>>(std::forward<Args>(args) ...)) {}
+                      validators(config::from_args_opt<config::validator_storage<T>>(std::forward<Args>(args) ...)) {}
 
             void set_value(T new_value) {
                 val = std::move(new_value);
@@ -113,14 +113,14 @@ namespace cppcmd {
             static_assert(std::is_default_constructible_v<T>, "Argument sink type must be default constructible");
 
             using config_t = config::detail::parameter_pack<typename TParser::argument_config,
-                config::description, config::long_name, config::validators<T>>;
+                config::description, config::long_name, config::validator_storage<T>>;
 
         public:
             std::optional<T> val;
             std::optional<typename TParser::argument_config> parser_config;
             std::optional<config::description> description;
             std::optional<config::long_name> name;
-            std::optional<config::validators<T>> validators;
+            std::optional<config::validator_storage<T>> validators;
 
             using type = T;
 
@@ -136,7 +136,7 @@ namespace cppcmd {
                     : parser_config(config::from_args_opt<typename TParser::argument_config>(std::forward<Args>(args) ...)),
                       description(config::from_args_opt<config::description>(std::forward<Args>(args) ...)),
                       name(config::from_args_opt<config::long_name>(std::forward<Args>(args) ...)),
-                      validators(config::from_args_opt<config::validators<T>>(std::forward<Args>(args) ...)) {}
+                      validators(config::from_args_opt<config::validator_storage<T>>(std::forward<Args>(args) ...)) {}
 
             void set_value(T new_value) {
                 val = std::move(new_value);
